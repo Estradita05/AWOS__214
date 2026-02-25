@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status, HTTPException
 import asyncio
 from typing import Optional
+from pydantic import BaseModel,Field
 
 
 app= FastAPI(
@@ -14,14 +15,20 @@ usuarios=[
     {"id":1, "nombre":"Montse", "edad": 20},
     {"id":2, "nombre":"Karla", "edad": 19},
     {"id":3, "nombre":"Pilar", "edad": 19},
+    {"id":4, "nombre":"Alexis", "edad": 20}
 ]
+
+class usuario_create(BaseModel):
+    id: int = Field(...,gt=0, description="Identificador de usuario")
+    nombre: str = Field(..., min_length=3, max=50, example="Isaac")
+    edad: int = Field(..., ge=1, le=123, description="Edad valida entre 1 - 123")
 
 #Endpoint
 @app.get("/", tags=["Inicio"]) 
 async def bienvenida():
     return {"message": "Bienvenido a mi API"}
 
-@app.get("/HolaMundo", tags=["Bienvenida Asincrona"]) #Endpoint
+@app.get("/HolaMundo", tags=["Bienvenida Asincrona"]) 
 async def hola():
     await asyncio.sleep(3)
     return {"mensaje": "Hola Mundo FAstAPI" ,
@@ -32,14 +39,15 @@ async def hola():
 async def consultaUno(id:int):
     return {"Se encontro usuario" : id }
 
-@app.get("/v1/parametroOp/" ,tags=['Parametro Opcional'])
+@app.get("/v1/parametroOp/", tags=["Parametro opcional"])
 async def consultaTodos(id:Optional[int]=None):
     if id is not None:
         for usuario in usuarios:
             if usuario["id"] == id:
-                return {"usuario": usuario}
-        return {"mensaje": "Usuario no encontrado"}
-    return {"mensaje": "usuario no encontrado" , "usuario":id}
+                return{"mensaje:":"usuario encontrado", "usuario":usuario}
+        return{"mensaje:":"usuario no encontrado", "usuario":id}
+    else:
+        return{"mensaje:":"No se proporciono id"}
 
 @app.get("/v1/usuarios/" ,tags=['CRUD HTTP'])
 async def leer_usuarios( ):
@@ -49,11 +57,17 @@ async def leer_usuarios( ):
         "usuarios": usuarios
     }
 
-@app.post("/v1/usuarios/" ,tags=['CRUD HTTP'])
-async def crear_usuario(usuario:dict):
+@app.post("/v1/usuarios/" ,tags=['CRUD HTTP'],status_code=status.HTTP_201_CREATED)
+async def crear_usuario(usuario:usuario_create):
+    for usr in usuarios:
+        if usr ["id"] == usuario.id:
+            raise HTTPException(
+                status_code=400,
+                detail="El id ya existe"
+            )
     usuarios.append(usuario)
     return{
-        "mensaje":"Usuario Agregado",
+        "mensaje":"Usuario agregado",
         "Usuario":usuario
     }
 
