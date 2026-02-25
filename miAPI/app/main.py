@@ -51,10 +51,6 @@ async def leer_usuarios( ):
 
 @app.post("/v1/usuarios/" ,tags=['CRUD HTTP'])
 async def crear_usuario(usuario:dict):
-    raise HTTPException(
-        status_code=400,
-        detail="El id ya existe"
-    )
     usuarios.append(usuario)
     return{
         "mensaje":"Usuario Agregado",
