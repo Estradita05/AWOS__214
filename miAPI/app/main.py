@@ -1,14 +1,30 @@
-from fastapi import FastAPI, status, HTTPException
+from operator import index
+from fastapi import FastAPI, status, HTTPException, Depends
 import asyncio
 from typing import Optional
 from pydantic import BaseModel,Field
-
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 
 app= FastAPI(
     title="Mi primer API",
     description="Esta es mi primera API con FastAPI en la clase del profe Isay",
     version="1.0.0"
     )
+
+#seguridad HTTP Basic
+security = HTTPBasic()
+def verificar_Peticion(credentials: HTTPBasicCredentials = Depends(security)):
+        userAuth = secrets.compare_digest(credentials.username, "Montserrath Estrada")
+        passAuth = secrets.compare_digest(credentials.password, "140320")
+
+        if not (userAuth and passAuth):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales no autorizadas"
+            )
+        return credentials.username    
+
 
 #TB ficticia
 usuarios=[
@@ -22,6 +38,7 @@ class usuario_create(BaseModel):
     id: int = Field(...,gt=0, description="Identificador de usuario")
     nombre: str = Field(..., min_length=3, max=50, example="Isaac")
     edad: int = Field(..., ge=1, le=123, description="Edad valida entre 1 - 123")
+    
 
 #Endpoint
 @app.get("/", tags=["Inicio"]) 
@@ -85,15 +102,18 @@ async def actualizar_usuario(id:int, usuario:dict):
         detail="Usuario no encontrado"
     )
 
-@app.delete("/v1/usuarios/{id}" ,tags=['CRUD HTTP'])
-async def eliminar_usuario(id:int):
-    for i, u in enumerate(usuarios):
-        if u["id"] == id:
-            usuarios.pop(i)
+@app.delete("/v1/usuarios/{id}", tags=['CRUD HTTP'])
+async def eliminar_usuario(id: int, userAuth: str = Depends(verificar_Peticion)):
+
+    for index, usr in enumerate(usuarios):
+        if usr["id"] == id:
+            usuarios.pop(index)
             return {
-                "mensaje": "Usuario eliminado"
+                "mensaje": f"Usuario eliminado por: {userAuth}"
             }
+
     raise HTTPException(
         status_code=404,
         detail="Usuario no encontrado"
     )
+
