@@ -51,19 +51,49 @@ def crear_ticket(ticket: Ticket):
 
     return {"mensaje": "Ticket creado", "ticket": nuevo_ticket}
 
-
-# OBTENER TICKETS
+# LISTAR TICKETS 
 @app.get("/tickets", tags=["Tickets"])
-def obtener_tickets(usuario: str = Depends(verificar_usuario)):
-    return {"tickets": tickets}  
+def listar_tickets():
+    return tickets
 
-# ACTUALIZAR ESTADO 
-@app.put("/tickets/{ticket_id}", tags=["Tickets"])
-def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario: str = Depends(verificar_usuario)):
+
+# CONSULTAR POR ID 
+@app.get("/tickets/{ticket_id}", tags=["Tickets"])
+def consultar_ticket(ticket_id: int, usuario: str = Depends(verificar_usuario)):
+
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
+            return ticket
+
+    raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+
+# CAMBIAR ESTADO 
+@app.put("/tickets/{ticket_id}/estado", tags=["Tickets"])
+def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: str = Depends(verificar_usuario)):
+
     for ticket in tickets:
         if ticket["id"] == ticket_id:
             ticket["estado"] = nuevo_estado
-            return {"mensaje": "Estado actualizado", "ticket": ticket
-                    }
+            return {"mensaje": "Estado actualizado", "ticket": ticket}
+
+    raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
 
+# ELIMINAR TICKET 
+@app.delete("/tickets/{ticket_id}", tags=["Tickets"])
+def eliminar_ticket(ticket_id: int):
+
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
+
+            if ticket["estado"] == "resuelto":
+                raise HTTPException(
+                    status_code=400,
+                    detail="No es posible eliminar tickets resueltos"
+                )
+
+            tickets.remove(ticket)
+            return {"mensaje": "Ticket eliminado con exito"}
+
+    raise HTTPException(status_code=404, detail="Ticket no encontrado")
