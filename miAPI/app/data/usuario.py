@@ -8,3 +8,5 @@ class Usuario(Base):
     nombre = Column(String)
     edad = Column(Integer)
 
+    
+    
